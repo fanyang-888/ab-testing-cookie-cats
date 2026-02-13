@@ -92,7 +92,6 @@ Data file location (recommended):
 ## Repo Structure
 
 ```text
-.
 ├── code/
 │   ├── A_B_Testing.ipynb        # main analysis notebook
 │   └── hash.ipynb               # deterministic hash bucketing example
@@ -102,6 +101,7 @@ Data file location (recommended):
 └── file/
     ├── report.md                # final write-up (to be generated)
     └── figs/                    # saved charts (to be generated)
+```
 
 ---
 
