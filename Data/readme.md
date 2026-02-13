@@ -1,5 +1,4 @@
 # Data
-
 This project analyzes the Cookie Cats A/B test dataset.
 
 ## File
