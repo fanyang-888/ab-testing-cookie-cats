@@ -90,16 +90,18 @@ Data file location (recommended):
 ---
 
 ## Repo Structure
-├── code/
-│ ├── A_B_Testing.ipynb # main analysis notebook
-│ └── hash.ipynb # deterministic hash bucketing example
-├── data/
-│ └── README.md # data notes + schema
-│ └── cookie_cats.xslx
-└── file/
-├── report.md # final write-up (to be generated)
-└── figs/ # saved charts (to be generated)
 
+```text
+.
+├── code/
+│   ├── A_B_Testing.ipynb        # main analysis notebook
+│   └── hash.ipynb               # deterministic hash bucketing example
+├── data/
+│   ├── README.md                # data notes + schema
+│   └── cookie_cats.xlsx
+└── file/
+    ├── report.md                # final write-up (to be generated)
+    └── figs/                    # saved charts (to be generated)
 
 ---
 
