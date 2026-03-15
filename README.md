@@ -135,6 +135,6 @@ This section will summarize:
 ---
 
 ## License
-Course project.
+Personal study project.
 
 
