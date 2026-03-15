@@ -1,15 +1,23 @@
 # Cookie Cats Gate Placement A/B Test
 
-This repo is my end-to-end A/B testing analysis of the **Cookie Cats** experiment, where the first in-game gate was placed at **level 30** (control) vs **level 40** (treatment). The goal is to evaluate whether moving the gate changes **retention** and **engagement**.
+This repository contains an A/B testing analysis of the **Cookie Cats** experiment, where the first in-game gate was placed at **level 30** (control) vs **level 40** (treatment). The goal is to evaluate whether moving the gate changes **retention** and **engagement**.
 
 - Control: `gate_30`
 - Treatment: `gate_40`
 
-I also include a small notebook demonstrating **deterministic hash bucketing** (how an online system can consistently assign users to A/B groups).
+A small notebook demonstrates **deterministic hash bucketing** (how an online system can consistently assign users to A/B groups).
 
 ---
 
-## Background
+## Objectives
+
+- To analyze the effect of gate placement (level 30 vs level 40) on Day-1 and Day-7 retention and on engagement (game rounds played).
+- To apply two-sample tests for binary and continuous metrics and to interpret confidence intervals and p-values.
+- To demonstrate deterministic hash-based assignment of users to experiment groups (as used in production A/B testing).
+
+---
+
+## Background / Theory
 
 In level-based games, gates are used to control pacing and encourage progression. But gate placement is a trade-off:
 - If the gate is too early, players may churn quickly.
@@ -105,9 +113,9 @@ Data file location (recommended):
 
 ---
 
-## How to Run
+## Procedure
 
-### Option 1: Run notebooks (recommended)
+### How to Run (recommended)
 1) Put the dataset at:
    - `data/cookie_cats.csv`
 2) Open and run:
