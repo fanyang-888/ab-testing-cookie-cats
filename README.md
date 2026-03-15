@@ -63,9 +63,10 @@ The dataset does not include direct “negative experience” metrics (crashes, 
 
 ---
 
-## Data Schema
+## Procedure
 
-Expected columns:
+### Data and schema
+Place the dataset at `data/cookie_cats.csv`. Expected columns:
 - `userid` (int): user identifier
 - `version` (str): experiment group (`gate_30` or `gate_40`)
 - `sum_gamerounds` (int/float): rounds played in first week
@@ -75,11 +76,9 @@ Expected columns:
 Data file location (recommended):
 - `data/cookie_cats.csv`
 
-> Note: If the original dataset cannot be shared publicly, I will keep only a small sample file and document how to reproduce results.
+If the full dataset cannot be shared publicly, keep only a sample and document how to reproduce results.
 
----
-
-## Methods (what I run)
+### Methods (what this lab runs)
 
 ### Binary metrics (retention)
 - two-sample proportion test (z-test) for difference in retention rates
@@ -94,6 +93,11 @@ Data file location (recommended):
 ### Data quality checks
 - SRM (Sample Ratio Mismatch): verify group sizes are consistent with expected allocation
 - basic sanity checks: missing values, duplicates, extreme outliers
+
+### How to run
+1. Put the dataset at `data/cookie_cats.csv`.
+2. Open and run `code/A_B_Testing_Python.ipynb`, then optionally `code/hash_bucketing.ipynb`.
+3. (Planned) A script entry point may be added to generate `file/report.md` and charts in `file/figs/`.
 
 ---
 
@@ -113,24 +117,8 @@ Data file location (recommended):
 
 ---
 
-## Procedure
-
-### How to Run (recommended)
-1) Put the dataset at:
-   - `data/cookie_cats.csv`
-2) Open and run:
-   - `code/A_B_Testing_Python.ipynb`
-   - `code/hash_bucketing.ipynb` (optional)
-
-### Option 2: (Planned) Scripted run
-I plan to add a script entry point so that running one command generates:
-- `file/report.md`
-- charts in `file/figs/`
-
----
-
-## Results / Conclusion (TODO)
-I will summarize:
+## Results and Conclusion
+This section will summarize:
 - the estimated lift on **Day-7 retention** (primary), with CI and p-value
 - what happens to **Day-1 retention** and **engagement**
 - whether the recommendation is **ship / iterate / rollback**
@@ -138,11 +126,11 @@ I will summarize:
 
 ---
 
-## Notes / Next Steps
-- add automated SRM checks + plots
-- add multiple testing correction (Holm or BH-FDR) when comparing several metrics/segments
-- add segmented analysis (if more user attributes are available)
-- convert the notebook results into a clean `file/report.md`
+## Summary and Future Work
+- Add automated SRM checks and plots.
+- Add multiple testing correction (Holm or BH-FDR) when comparing several metrics or segments.
+- Add segmented analysis if more user attributes are available.
+- Convert the notebook results into a clean `file/report.md`.
 
 ---
 
