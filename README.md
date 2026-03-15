@@ -101,15 +101,15 @@ If the full dataset cannot be shared publicly, keep only a sample and document h
 
 ---
 
-## Repo Structure
+## Project Structure
 
 ```text
 ├── code/
 │   ├── A_B_Testing_Python.ipynb # main analysis notebook
 │   └── hash_bucketing.ipynb     # deterministic hash bucketing example
 ├── data/
-│   ├── README.md                # data notes + schema
-│   └── cookie_cats.xlsx
+│   ├── readme.md                 # data notes + schema
+│   └── cookie_cats.csv
 └── file/
     ├── report.md                # final write-up (to be generated)
     └── figs/                    # saved charts (to be generated)
@@ -135,6 +135,6 @@ This section will summarize:
 ---
 
 ## License
-TBD
+Course project.
 
 
