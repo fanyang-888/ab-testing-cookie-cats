@@ -51,7 +51,7 @@ The dataset does not include direct “negative experience” metrics (crashes, 
 - **Analysis window:** **D0–D7** after first exposure
   - `sum_gamerounds` is the first-week total
   - `retention_1` and `retention_7` are binary return indicators
-- **Assignment in production (concept):** deterministic hashing / bucketing (see `code/hash分流.ipynb`)
+- **Assignment in production (concept):** deterministic hashing / bucketing (see `code/hash_bucketing.ipynb`)
 
 ---
 
@@ -93,8 +93,8 @@ Data file location (recommended):
 
 ```text
 ├── code/
-│   ├── A_B_Testing.ipynb        # main analysis notebook
-│   └── hash.ipynb               # deterministic hash bucketing example
+│   ├── A_B_Testing_Python.ipynb # main analysis notebook
+│   └── hash_bucketing.ipynb     # deterministic hash bucketing example
 ├── data/
 │   ├── README.md                # data notes + schema
 │   └── cookie_cats.xlsx
@@ -111,8 +111,8 @@ Data file location (recommended):
 1) Put the dataset at:
    - `data/cookie_cats.csv`
 2) Open and run:
-   - `code/A_B_Testing_【Python】.ipynb`
-   - `code/hash分流.ipynb` (optional)
+   - `code/A_B_Testing_Python.ipynb`
+   - `code/hash_bucketing.ipynb` (optional)
 
 ### Option 2: (Planned) Scripted run
 I plan to add a script entry point so that running one command generates:
