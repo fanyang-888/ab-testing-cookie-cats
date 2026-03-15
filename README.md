@@ -29,14 +29,14 @@ This experiment asks:
 
 ---
 
-## Hypothesis
+## Hypotheses
 
 - **H0 (null):** There is no difference between `gate_30` and `gate_40` on the key metrics.
-- **H1 (alternative):** `gate_40` changes the key metrics compared to `gate_30` (I start with a two-sided test unless there is a strong business reason for one-sided).
+- **H1 (alternative):** `gate_40` changes the key metrics compared to `gate_30` (this experiment uses a two-sided test unless there is a strong reason for one-sided).
 
 ---
 
-## Metrics
+## Experiment Metrics
 
 ### Primary Metric
 - **Day-7 retention (`retention_7`)**: whether a user returns on day 7 (0/1)
@@ -46,13 +46,13 @@ This experiment asks:
 - **Engagement (`sum_gamerounds`)**: total game rounds played in the first week (continuous)
 
 ### Guardrails (practical)
-The dataset does not include direct “negative experience” metrics (crashes, complaints, refunds), so I treat:
+The dataset does not include direct “negative experience” metrics (crashes, complaints, refunds). This lab treats:
 - `retention_1` as a short-term guardrail (avoid improving D7 while hurting D1 too much)
 - robustness checks for `sum_gamerounds` (to avoid conclusions driven by extreme outliers / heavy users)
 
 ---
 
-## Experiment Design (high-level)
+## Experiment Design
 
 - **Unit of randomization:** `userid` (user-level)
 - **Allocation:** two variants (`gate_30` vs `gate_40`)
