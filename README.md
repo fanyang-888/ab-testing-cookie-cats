@@ -118,11 +118,26 @@ If the full dataset cannot be shared publicly, keep only a sample and document h
 ---
 
 ## Results and Conclusion
-This section will summarize:
-- the estimated lift on **Day-7 retention** (primary), with CI and p-value
-- what happens to **Day-1 retention** and **engagement**
-- whether the recommendation is **ship / iterate / rollback**
-- limitations and assumptions
+
+### Primary: Day-7 retention
+- **Lift (gate_40 vs gate_30):** −0.82 pp (control 19.02% vs treatment 18.20%). Day-7 retention is lower in the treatment group.
+- **95% CI (difference in proportions, treatment − control):** approximately [−0.013, −0.003].
+- **p-value (two-sided proportion z-test):** p ≈ 0.0016 (statistically significant at α = 0.05).
+- **Practical significance:** The effect is statistically significant and negative. A drop of ~0.8 pp in D7 retention is material for most product thresholds; there is no business case for accepting this trade-off unless other benefits (e.g. revenue) clearly outweigh it.
+
+### Secondary: Day-1 retention and engagement
+- **Day-1 retention:** gate_40 is slightly lower than gate_30 (e.g. 44.23% vs 44.82%); p ≈ 0.074 (not significant at α = 0.05). No evidence of a favourable trade-off (we do not improve D7 by moving the gate, and D1 does not improve either).
+- **sum_gamerounds:** Mann–Whitney U test gives p ≈ 0.05; mean difference is very small. No meaningful engagement gain for gate_40; results are sensitive to outliers (one heavy user in gate_30); after trimming, the two groups are effectively equivalent.
+
+### Recommendation
+**Rollback / Do not ship gate_40.** Moving the first gate from level 30 to level 40 significantly reduces Day-7 retention with no compensating improvement in Day-1 retention or engagement. Keep the gate at level 30.
+
+### Limitations
+- Analysis window is D0–D7 only; no longer-term retention or revenue.
+- No multivariate or segmented analysis (e.g. by cohort or region).
+- No multiple-testing correction (e.g. Holm or BH) across metrics.
+- Single snapshot of data; no repeated runs or sensitivity to time period.
+- `sum_gamerounds` is heavy-tailed; conclusions for engagement rely on non-parametric and trimmed checks.
 
 ---
 
