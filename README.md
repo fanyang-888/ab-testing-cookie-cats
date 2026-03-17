@@ -1,107 +1,25 @@
-# Cookie Cats Gate Placement A/B Test
+# Cookie Cats A/B Test: Gate Placement Decision
 
-This repository contains an A/B testing analysis of the **Cookie Cats** experiment, where the first in-game gate was placed at **level 30** (control) vs **level 40** (treatment). The goal is to evaluate whether moving the gate changes **retention** and **engagement**.
+A/B testing analysis of the Cookie Cats gate placement experiment, focused on retention, engagement, and business decision quality.
 
-- Control: `gate_30`
-- Treatment: `gate_40`
+## Executive Summary
+- **Problem:** Should the first gate move from level 30 (`gate_30`) to level 40 (`gate_40`)?
+- **Experiment setup:** User-level randomized A/B test, 90,189 users total.
+- **Sample sizes:** `gate_30` = 44,700; `gate_40` = 45,489. No meaningful SRM signal for a 50/50 split.
+- **Primary metric (D7 retention):** `gate_40` decreased D7 retention by **0.82 pp** (19.02% to 18.20%), 95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**.
+- **Secondary metrics:** D1 retention decreased by **0.59 pp** (p = 0.0744; not significant). `sum_gamerounds` showed no robust improvement for `gate_40` (Mann-Whitney p = 0.0502; tiny mean delta).
+- **Recommendation:** **Do not ship `gate_40`. Keep `gate_30` and test alternative pacing ideas.**
 
-A small notebook demonstrates **deterministic hash bucketing** (how an online system can consistently assign users to A/B groups).
+## Key Result and Conclusion
+The treatment harms the primary metric (D7 retention) with statistical and practical significance, while not delivering clear upside on D1 retention or engagement. This is a negative tradeoff and should be rejected in production.
 
----
-
-## Objectives
-
-- To analyze the effect of gate placement (level 30 vs level 40) on Day-1 and Day-7 retention and on engagement (game rounds played).
-- To apply two-sample tests for binary and continuous metrics and to interpret confidence intervals and p-values.
-- To demonstrate deterministic hash-based assignment of users to experiment groups (as used in production A/B testing).
-
----
-
-## Background / Theory
-
-In level-based games, gates are used to control pacing and encourage progression. But gate placement is a trade-off:
-- If the gate is too early, players may churn quickly.
-- If it is too late, players may progress too freely and lose long-term engagement incentives.
-
-This experiment asks:
-
-> Does moving the first gate from level 30 to level 40 improve retention (especially Day 7), and what happens to engagement?
-
----
-
-## Hypotheses
-
-- **H0 (null):** There is no difference between `gate_30` and `gate_40` on the key metrics.
-- **H1 (alternative):** `gate_40` changes the key metrics compared to `gate_30` (this experiment uses a two-sided test unless there is a strong reason for one-sided).
-
----
-
-## Experiment Metrics
-
-### Primary Metric
-- **Day-7 retention (`retention_7`)**: whether a user returns on day 7 (0/1)
-
-### Secondary Metrics
-- **Day-1 retention (`retention_1`)**: whether a user returns on day 1 (0/1)
-- **Engagement (`sum_gamerounds`)**: total game rounds played in the first week (continuous)
-
-### Guardrails (practical)
-The dataset does not include direct “negative experience” metrics (crashes, complaints, refunds). This lab treats:
-- `retention_1` as a short-term guardrail (avoid improving D7 while hurting D1 too much)
-- robustness checks for `sum_gamerounds` (to avoid conclusions driven by extreme outliers / heavy users)
-
----
-
-## Experiment Design
-
-- **Unit of randomization:** `userid` (user-level)
-- **Allocation:** two variants (`gate_30` vs `gate_40`)
-- **Analysis window:** **D0–D7** after first exposure
-  - `sum_gamerounds` is the first-week total
-  - `retention_1` and `retention_7` are binary return indicators
-- **Assignment in production (concept):** deterministic hashing / bucketing (see `notebooks/hash_bucketing.ipynb`)
-
----
-
-## Procedure
-
-### Data and schema
-Place the dataset at `data/cookie_cats.csv`. Expected columns:
-- `userid` (int): user identifier
-- `version` (str): experiment group (`gate_30` or `gate_40`)
-- `sum_gamerounds` (int/float): rounds played in first week
-- `retention_1` (0/1): returned on day 1
-- `retention_7` (0/1): returned on day 7
-
-Data file location (recommended):
-- `data/cookie_cats.csv`
-
-If the full dataset cannot be shared publicly, keep only a sample and document how to reproduce results.
-
-### Methods (what this lab runs)
-
-### Binary metrics (retention)
-- two-sample proportion test (z-test) for difference in retention rates
-- confidence intervals for the lift (treatment - control)
-- bootstrap as a robustness check (optional but helpful)
-
-### Continuous metric (engagement)
-- Welch’s t-test (does not assume equal variance)
-- Mann–Whitney U test (non-parametric robustness check)
-- outlier sensitivity checks (e.g., trimming / winsorization), because `sum_gamerounds` can be heavy-tailed
-
-### Data quality checks
-- SRM (Sample Ratio Mismatch): verify group sizes are consistent with expected allocation
-- basic sanity checks: missing values, duplicates, extreme outliers
-
-### How to run
-1. Clone the repo and install dependencies: `pip install -r requirements.txt`
-2. Place `cookie_cats.csv` in `data/` (see `data/readme.md` for schema).
+## Quick Reproducibility
+1. Install dependencies: `pip install -r requirements.txt`
+2. Put the dataset at `data/cookie_cats.csv` (see `data/readme.md`)
 3. Run analysis: `python src/run_analysis.py`
-4. Outputs: `reports/report.md`, `figures/*.png`
-5. Optional: run `notebooks/A_B_Testing_Python.ipynb` for step-by-step exploration; `notebooks/hash_bucketing.ipynb` for bucketing.
-
----
+4. Review outputs:
+   - `reports/report.md`
+   - `figures/*.png`
 
 ## Project Structure
 
@@ -109,52 +27,43 @@ If the full dataset cannot be shared publicly, keep only a sample and document h
 ├── README.md
 ├── requirements.txt
 ├── src/
-│   └── run_analysis.py          # run full analysis and generate report + figures
+│   └── run_analysis.py
 ├── notebooks/
-│   ├── A_B_Testing_Python.ipynb # main analysis notebook
-│   └── hash_bucketing.ipynb     # deterministic hash bucketing example
+│   ├── A_B_Testing_Python.ipynb
+│   └── hash_bucketing.ipynb
 ├── data/
-│   ├── readme.md                 # data notes + schema
+│   ├── readme.md
 │   └── cookie_cats.csv
-├── reports/                      # report.md (generated by run_analysis.py)
-└── figures/                      # charts (generated by run_analysis.py)
+├── reports/
+│   └── report.md
+└── figures/
+    └── *.png
 ```
 
----
+## Experiment Design
+- **Unit of randomization:** `userid`
+- **Variants:** `gate_30` (control) vs `gate_40` (treatment)
+- **Window:** D0-D7 after first exposure
+- **Primary metric:** `retention_7`
+- **Secondary metrics:** `retention_1`, `sum_gamerounds`
 
-## Results and Conclusion
+## Methods
+- **Retention metrics:** two-sample proportion z-test + 95% CI for treatment minus control.
+- **Engagement metric:** Mann-Whitney U test (robust to heavy tails), plus practical effect-size interpretation.
+- **Data quality:** SRM check for expected 50/50 allocation, basic schema and missing-value checks.
 
-### Primary: Day-7 retention
-- **Lift (gate_40 vs gate_30):** −0.82 pp (control 19.02% vs treatment 18.20%). Day-7 retention is lower in the treatment group.
-- **95% CI (difference in proportions, treatment − control):** approximately [−0.013, −0.003].
-- **p-value (two-sided proportion z-test):** p ≈ 0.0016 (statistically significant at α = 0.05).
-- **Practical significance:** The effect is statistically significant and negative. A drop of ~0.8 pp in D7 retention is material for most product thresholds; there is no business case for accepting this trade-off unless other benefits (e.g. revenue) clearly outweigh it.
+## Business Recommendation
+- **Decision:** Roll back `gate_40` and keep `gate_30`.
+- **Why not p-value only:** decision is based on direction, size, uncertainty, and product impact, not significance alone.
+- **Next experiment:** test pacing variants that preserve D7 while monitoring D1 and engagement guardrails.
 
-### Secondary: Day-1 retention and engagement
-- **Day-1 retention:** gate_40 is slightly lower than gate_30 (e.g. 44.23% vs 44.82%); p ≈ 0.074 (not significant at α = 0.05). No evidence of a favourable trade-off (we do not improve D7 by moving the gate, and D1 does not improve either).
-- **sum_gamerounds:** Mann–Whitney U test gives p ≈ 0.05; mean difference is very small. No meaningful engagement gain for gate_40; results are sensitive to outliers (one heavy user in gate_30); after trimming, the two groups are effectively equivalent.
-
-### Recommendation
-**Rollback / Do not ship gate_40.** Moving the first gate from level 30 to level 40 significantly reduces Day-7 retention with no compensating improvement in Day-1 retention or engagement. Keep the gate at level 30.
-
-### Limitations
-- Analysis window is D0–D7 only; no longer-term retention or revenue.
-- No multivariate or segmented analysis (e.g. by cohort or region).
-- No multiple-testing correction (e.g. Holm or BH) across metrics.
-- Single snapshot of data; no repeated runs or sensitivity to time period.
-- `sum_gamerounds` is heavy-tailed; conclusions for engagement rely on non-parametric and trimmed checks.
-
----
-
-## Summary and Future Work
-- Add automated SRM checks and plots.
-- Add multiple testing correction (Holm or BH-FDR) when comparing several metrics or segments.
-- Add segmented analysis if more user attributes are available.
-- Convert the notebook results into a clean `reports/report.md`.
-
----
+## Limitations
+- D0-D7 window only; no long-run retention or revenue outcomes.
+- No segmentation by cohort/region/device.
+- No multiple-testing adjustment across all possible cuts.
+- Engagement distribution is heavy-tailed; non-parametric results are preferred.
 
 ## License
-Personal study project.
+Personal portfolio project.
 
 
