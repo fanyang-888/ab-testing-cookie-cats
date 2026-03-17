@@ -1,77 +1,74 @@
-# Cookie Cats A/B Test: Gate Placement Decision
-
-A/B testing analysis of the Cookie Cats gate placement experiment, focused on retention, engagement, and business decision quality.
+# Cookie Cats A/B Experiment Review
 
 ## Executive Summary
-- **Problem:** Should the first gate move from level 30 (`gate_30`) to level 40 (`gate_40`)?
-- **Experiment setup:** User-level randomized A/B test, 90,189 users total.
-- **Sample sizes:** `gate_30` = 44,700; `gate_40` = 45,489. SRM check: chi2 = 6.90, p = 0.0086 (possible allocation mismatch; interpret with care).
-- **Primary metric (D7 retention):** `gate_40` decreased D7 retention by **0.82 pp** (19.02% to 18.20%), 95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**.
-- **Secondary metrics:** D1 retention decreased by **0.59 pp** (p = 0.0744; not significant). `sum_gamerounds` showed no robust improvement for `gate_40` (Mann-Whitney p = 0.0502; tiny mean delta).
-- **Recommendation:** **Do not ship `gate_40`. Keep `gate_30` and test alternative pacing ideas.**
+- **Experiment:** Control `gate_30` vs Treatment `gate_40`
+- **Primary metric:** Day-7 retention
+- **Key result:** `gate_40` decreased D7 retention by **0.82 pp** (19.02% to 18.20%), 95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**
+- **Tradeoff:** D1 retention is also lower (-0.59 pp, p = 0.0744), while engagement shows no robust upside
+- **Recommendation:** **Do not move the gate to level 40. Keep `gate_30` and iterate on alternative pacing designs.**
 
-## Key Result and Conclusion
-The treatment harms the primary metric (D7 retention) with statistical and practical significance, while not delivering clear upside on D1 retention or engagement. This is a negative tradeoff and should be rejected in production.
-
-## Final Artifacts
-- **Report:** `reports/report.md`
-- **Retention with CI chart:** `figures/retention_plot.png`
-- **Engagement distribution chart:** `figures/gamerounds_distribution.png`
-- **Sample-size/SRM chart:** `figures/srm_check.png`
-
-## Quick Reproducibility
-1. Install dependencies: `pip install -r requirements.txt`
-2. Put the dataset at `data/cookie_cats.csv` (see `data/readme.md`)
-3. Run analysis: `python src/analysis.py`
-4. Review outputs:
-   - `reports/report.md`
-   - `figures/*.png`
-
-## Project Structure
-
-```text
-├── README.md
-├── requirements.txt
-├── src/
-│   └── analysis.py
-├── notebooks/
-│   ├── ab_test_analysis.ipynb
-│   └── hash_bucketing.ipynb
-├── data/
-│   ├── readme.md
-│   └── cookie_cats.csv
-├── reports/
-│   └── report.md
-└── figures/
-    └── *.png
-```
+## Business Context
+Cookie Cats uses level gates to shape progression pace. Moving the first gate later can increase short-term flow but may weaken long-term motivation loops. The product question is whether level-40 gating improves retention enough to justify rollout.
 
 ## Experiment Design
 - **Unit of randomization:** `userid`
-- **Variants:** `gate_30` (control) vs `gate_40` (treatment)
-- **Window:** D0-D7 after first exposure
-- **Primary metric:** `retention_7`
-- **Secondary metrics:** `retention_1`, `sum_gamerounds`
+- **Variants:** `gate_30` (control) and `gate_40` (treatment)
+- **Analysis window:** D0-D7 after first exposure
+- **Metrics:** `retention_7` (primary), `retention_1`, `sum_gamerounds` (secondary)
+- **Reproducibility:**
+  - `pip install -r requirements.txt`
+  - `python src/analysis.py`
+- **Artifacts:** `reports/report.md`, `figures/*.png`
 
-## Methods
-- **Retention metrics:** two-sample proportion z-test + 95% CI for treatment minus control.
-- **Engagement metric:** Mann-Whitney U test (robust to heavy tails), plus practical effect-size interpretation.
-- **Data quality:** SRM check for expected 50/50 allocation, basic schema and missing-value checks.
+## Data Validation
+- **Sample sizes:** `gate_30` = 44,700, `gate_40` = 45,489
+- **SRM check:** chi2 = 6.9024, p = 0.0086 (allocation mismatch signal)
+- **Randomization proxy checks:**
+  - User ID parity balance p = 0.1217
+  - User ID last-digit balance p = 0.7961
+- **Distribution check:** gamerounds KS p = 0.0171 (distributional difference exists; heavy-tail handling is required)
+- **Interpretation:** results are directionally consistent, but SRM means effect interpretation should include implementation-risk caution.
 
-## Business Recommendation
-- **Decision:** Roll back `gate_40` and keep `gate_30`.
-- **Why not p-value only:** decision is based on direction, size, uncertainty, and product impact, not significance alone.
-- **Practical significance:** a -0.82 pp D7 shift is meaningful at scale and points in the wrong direction.
-- **Tradeoff view:** D7 decreases significantly, while D1 and engagement show no compensating upside.
-- **Next experiment:** test alternative pacing designs and tighten traffic assignment instrumentation to remove SRM risk before relaunch.
+## Statistical Analysis
+- **Binary outcomes:** two-sample proportion z-test with 95% CI
+- **Engagement:** Mann-Whitney U test and 1% trimmed mean robustness check
+- **Bootstrap:** treatment-control mean difference bootstrap distribution with 95% CI
+- **Power analysis:** alpha = 0.05, power = 0.80, baseline from control D7 retention
+
+## Results
+- **D7 retention:** -0.82 pp, 95% CI [-1.33 pp, -0.31 pp], p = 0.0016
+- **D1 retention:** -0.59 pp, 95% CI [-1.24 pp, 0.06 pp], p = 0.0744
+- **Gamerounds mean difference:** -1.16 (treatment - control)
+- **Mann-Whitney p-value:** 0.0502
+- **Trimmed mean (1%):** 45.11 vs 44.83
+- **Bootstrap CI (mean diff):** [-4.03, 0.99]
+- **Power / MDE:**
+  - Current-sample D7 MDE is about 0.73 pp
+  - Required n/group for +0.50 pp detection: ~96,714
+  - Required n/group for +1.00 pp detection: ~24,178
+
+## Product Recommendation
+- **Decision:** Rollback / do not ship `gate_40`
+- **Why:** primary metric worsens materially and significantly, with no compensating engagement upside
+- **Product thinking:** if a future variant improves engagement but hurts retention, prioritize long-term retention unless engagement gain maps to proven monetization or LTV lift
+- **Execution note:** resolve SRM cause before relaunching any follow-up experiment
 
 ## Limitations
-- D0-D7 window only; no long-run retention or revenue outcomes.
-- No segmentation by cohort/region/device.
-- No multiple-testing adjustment across all possible cuts.
-- Engagement distribution is heavy-tailed; non-parametric results are preferred.
+- Dataset is limited to D0-D7; no long-run retention, revenue, or LTV
+- No segmentation by cohort, platform, geo, or acquisition channel
+- Covariate balance uses available proxies, not full pre-treatment covariates
+- Multiple-comparison correction is not applied across all potential cuts
 
-## License
-Personal portfolio project.
+## Next Experiments
+- Test pacing alternatives that preserve challenge while reducing friction spikes
+- Run segmented experiments by early-skill proxies and acquisition cohorts
+- Add guardrails for monetization and frustration signals
+- Pre-register SRM monitoring and assignment instrumentation checks
+
+## Visual Artifacts
+- `figures/retention_plot.png`
+- `figures/gamerounds_distribution.png`
+- `figures/bootstrap_difference.png`
+- `figures/srm_check.png`
 
 

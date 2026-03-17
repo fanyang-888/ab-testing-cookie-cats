@@ -64,6 +64,49 @@ def srm_check(n_control, n_treatment, expected_ratio=0.5):
     return chi2_stat, p_value
 
 
+def randomization_diagnostics(ctrl, trt):
+    # Proxy randomization checks based on user identifier patterns.
+    parity_table = [
+        [(ctrl["userid"] % 2 == 0).sum(), (ctrl["userid"] % 2 == 1).sum()],
+        [(trt["userid"] % 2 == 0).sum(), (trt["userid"] % 2 == 1).sum()],
+    ]
+    parity_chi2, parity_p, _, _ = stats.chi2_contingency(parity_table)
+
+    ctrl_last_digit = np.bincount((ctrl["userid"] % 10).to_numpy(), minlength=10)
+    trt_last_digit = np.bincount((trt["userid"] % 10).to_numpy(), minlength=10)
+    digit_chi2, digit_p, _, _ = stats.chi2_contingency(
+        np.vstack([ctrl_last_digit, trt_last_digit])
+    )
+    return parity_chi2, parity_p, digit_chi2, digit_p
+
+
+def compute_mde_and_sample_size(n1, n2, baseline_rate, alpha=0.05, power=0.8):
+    z_alpha = stats.norm.ppf(1 - alpha / 2)
+    z_beta = stats.norm.ppf(power)
+    mde = (z_alpha + z_beta) * np.sqrt(
+        baseline_rate * (1 - baseline_rate) * (1 / n1 + 1 / n2)
+    )
+
+    def required_n_per_group(delta):
+        numerator = 2 * baseline_rate * (1 - baseline_rate) * ((z_alpha + z_beta) ** 2)
+        return numerator / (delta**2)
+
+    n_05pp = required_n_per_group(0.005)
+    n_10pp = required_n_per_group(0.010)
+    return mde, n_05pp, n_10pp
+
+
+def bootstrap_mean_difference(ctrl_values, trt_values, n_boot=3000, seed=42):
+    rng = np.random.default_rng(seed)
+    ctrl_np = np.asarray(ctrl_values)
+    trt_np = np.asarray(trt_values)
+    idx_ctrl = rng.integers(0, len(ctrl_np), size=(n_boot, len(ctrl_np)))
+    idx_trt = rng.integers(0, len(trt_np), size=(n_boot, len(trt_np)))
+    diffs = trt_np[idx_trt].mean(axis=1) - ctrl_np[idx_ctrl].mean(axis=1)
+    ci_low, ci_high = np.percentile(diffs, [2.5, 97.5])
+    return diffs, ci_low, ci_high
+
+
 def save_retention_figure(rates, cis):
     fig, ax = plt.subplots(figsize=(8, 5))
     metrics = ["D1", "D7"]
@@ -132,6 +175,23 @@ def save_gamerounds_figure(df):
     return out
 
 
+def save_bootstrap_figure(boot_diffs, ci_low, ci_high):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(boot_diffs, bins=40, color="#4c72b0", alpha=0.9)
+    ax.axvline(0, color="black", linestyle="--", linewidth=1, label="No difference")
+    ax.axvline(ci_low, color="#c44e52", linestyle="--", linewidth=1.5, label="95% CI")
+    ax.axvline(ci_high, color="#c44e52", linestyle="--", linewidth=1.5)
+    ax.set_title("Bootstrap distribution: mean gamerounds diff (gate_40 - gate_30)")
+    ax.set_xlabel("Difference in mean gamerounds")
+    ax.set_ylabel("Bootstrap count")
+    ax.legend()
+    plt.tight_layout()
+    out = FIGURES_DIR / "bootstrap_difference.png"
+    plt.savefig(out, dpi=120)
+    plt.close()
+    return out
+
+
 def save_srm_figure(n_control, n_treatment):
     total = n_control + n_treatment
     expected = total / 2
@@ -178,6 +238,15 @@ def main():
     # SRM
     srm_chi2, srm_p = srm_check(n_ctrl, n_trt, expected_ratio=0.5)
     srm_status = "PASS (no evidence of SRM)" if srm_p >= 0.05 else "FAIL (possible SRM)"
+    parity_chi2, parity_p, digit_chi2, digit_p = randomization_diagnostics(ctrl, trt)
+
+    # Distribution validity checks for heavy-tailed engagement
+    ks_stat, ks_p = stats.ks_2samp(ctrl["sum_gamerounds"], trt["sum_gamerounds"])
+
+    # Power analysis (primary metric baseline: control D7 retention)
+    d7_mde, n_for_05pp, n_for_10pp = compute_mde_and_sample_size(
+        n_ctrl, n_trt, r7_ctrl, alpha=0.05, power=0.8
+    )
 
     rates = {"r1_ctrl": r1_ctrl, "r1_trt": r1_trt, "r7_ctrl": r7_ctrl, "r7_trt": r7_trt}
     cis = {
@@ -189,6 +258,10 @@ def main():
 
     retention_fig = save_retention_figure(rates, cis)
     gamerounds_fig = save_gamerounds_figure(df)
+    boot_diffs, boot_ci_low, boot_ci_high = bootstrap_mean_difference(
+        ctrl["sum_gamerounds"], trt["sum_gamerounds"]
+    )
+    bootstrap_fig = save_bootstrap_figure(boot_diffs, boot_ci_low, boot_ci_high)
     srm_fig = save_srm_figure(n_ctrl, n_trt)
 
     recommendation = (
@@ -199,10 +272,14 @@ def main():
 
     report = f"""# Cookie Cats A/B Test Report (generated)
 
-## Experiment and data quality checks
+## Data Validation
 - **Control (`gate_30`) sample size:** {n_ctrl:,}
 - **Treatment (`gate_40`) sample size:** {n_trt:,}
 - **SRM check (chi-square):** chi2 = {srm_chi2:.4f}, p = {srm_p:.4f} -> **{srm_status}**
+- **User ID parity balance check:** chi2 = {parity_chi2:.4f}, p = {parity_p:.4f}
+- **User ID last-digit balance check:** chi2 = {digit_chi2:.4f}, p = {digit_p:.4f}
+- **Gamerounds distribution KS test:** statistic = {ks_stat:.4f}, p = {ks_p:.4f}
+- **Validity interpretation:** sample-ratio mismatch is flagged, while ID-balance proxies are acceptable; interpret treatment effects with additional caution.
 
 ## Primary metric: Day-7 retention
 - **Lift (gate_40 - gate_30):** {delta_7 * 100:.2f} pp (control {r7_ctrl * 100:.2f}% vs treatment {r7_trt * 100:.2f}%)
@@ -214,6 +291,13 @@ def main():
 - **sum_gamerounds mean difference (treatment - control):** {mean_diff_rounds:.2f}
 - **Mann-Whitney U p-value:** {p_gamerounds:.4f}
 - **1% trimmed mean (control vs treatment):** {trim_ctrl:.2f} vs {trim_trt:.2f}
+- **Bootstrap mean-diff 95% CI:** [{boot_ci_low:.2f}, {boot_ci_high:.2f}]
+
+## Power Analysis (D7 retention)
+- **Assumptions:** two-sided alpha = 0.05, target power = 0.80, baseline = control D7 ({r7_ctrl * 100:.2f}%)
+- **Current-sample MDE:** about {d7_mde * 100:.2f} pp absolute change
+- **Required n/group for +0.50 pp detection:** ~{n_for_05pp:,.0f}
+- **Required n/group for +1.00 pp detection:** ~{n_for_10pp:,.0f}
 
 ## Recommendation
 {recommendation}
@@ -221,6 +305,7 @@ def main():
 ## Artifacts
 - `figures/{retention_fig.name}`
 - `figures/{gamerounds_fig.name}`
+- `figures/{bootstrap_fig.name}`
 - `figures/{srm_fig.name}`
 """
 
@@ -229,6 +314,7 @@ def main():
     print(f"Wrote {report_path}")
     print(f"Wrote {retention_fig}")
     print(f"Wrote {gamerounds_fig}")
+    print(f"Wrote {bootstrap_fig}")
     print(f"Wrote {srm_fig}")
     print("Done.")
 
