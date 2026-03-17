@@ -105,7 +105,7 @@ def save_retention_figure(rates, cis):
     ax.set_title("Retention by variant with 95% CI")
     ax.legend()
     plt.tight_layout()
-    out = FIGURES_DIR / "retention_with_ci.png"
+    out = FIGURES_DIR / "retention_plot.png"
     plt.savefig(out, dpi=120)
     plt.close()
     return out
@@ -126,7 +126,7 @@ def save_gamerounds_figure(df):
     ax.set_xlabel("Variant")
     ax.set_ylabel("sum_gamerounds")
     plt.tight_layout()
-    out = FIGURES_DIR / "gamerounds_boxplot_trimmed.png"
+    out = FIGURES_DIR / "gamerounds_distribution.png"
     plt.savefig(out, dpi=120)
     plt.close()
     return out
@@ -142,7 +142,7 @@ def save_srm_figure(n_control, n_treatment):
     ax.set_ylabel("Users")
     ax.legend()
     plt.tight_layout()
-    out = FIGURES_DIR / "sample_size_srm_check.png"
+    out = FIGURES_DIR / "srm_check.png"
     plt.savefig(out, dpi=120)
     plt.close()
     return out

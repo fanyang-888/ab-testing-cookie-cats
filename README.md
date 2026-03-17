@@ -15,14 +15,14 @@ The treatment harms the primary metric (D7 retention) with statistical and pract
 
 ## Final Artifacts
 - **Report:** `reports/report.md`
-- **Retention with CI chart:** `figures/retention_with_ci.png`
-- **Engagement distribution chart:** `figures/gamerounds_boxplot_trimmed.png`
-- **Sample-size/SRM chart:** `figures/sample_size_srm_check.png`
+- **Retention with CI chart:** `figures/retention_plot.png`
+- **Engagement distribution chart:** `figures/gamerounds_distribution.png`
+- **Sample-size/SRM chart:** `figures/srm_check.png`
 
 ## Quick Reproducibility
 1. Install dependencies: `pip install -r requirements.txt`
 2. Put the dataset at `data/cookie_cats.csv` (see `data/readme.md`)
-3. Run analysis: `python src/run_analysis.py`
+3. Run analysis: `python src/analysis.py`
 4. Review outputs:
    - `reports/report.md`
    - `figures/*.png`
@@ -33,9 +33,9 @@ The treatment harms the primary metric (D7 retention) with statistical and pract
 ├── README.md
 ├── requirements.txt
 ├── src/
-│   └── run_analysis.py
+│   └── analysis.py
 ├── notebooks/
-│   ├── A_B_Testing_Python.ipynb
+│   ├── ab_test_analysis.ipynb
 │   └── hash_bucketing.ipynb
 ├── data/
 │   ├── readme.md

@@ -24,7 +24,7 @@ This folder contains the dataset used for the Cookie Cats A/B test lab.
 ## How to use
 
 1. Place `cookie_cats.csv` in this `data/` folder.
-2. Run the analysis script `python src/run_analysis.py` or the notebook `notebooks/A_B_Testing_Python.ipynb`; both expect the dataset at `data/cookie_cats.csv`.
+2. Run the analysis script `python src/analysis.py` or the notebook `notebooks/ab_test_analysis.ipynb`; both expect the dataset at `data/cookie_cats.csv`.
 
 ## Notes
 

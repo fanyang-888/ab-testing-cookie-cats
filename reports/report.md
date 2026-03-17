@@ -20,6 +20,6 @@
 Rollback / Do not ship gate_40.
 
 ## Artifacts
-- `figures/retention_with_ci.png`
-- `figures/gamerounds_boxplot_trimmed.png`
-- `figures/sample_size_srm_check.png`
+- `figures/retention_plot.png`
+- `figures/gamerounds_distribution.png`
+- `figures/srm_check.png`
