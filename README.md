@@ -1,11 +1,21 @@
 # Cookie Cats A/B Experiment Review
 
 ## Executive Summary
-- **Experiment:** Control `gate_30` vs Treatment `gate_40`
-- **Primary metric:** Day-7 retention
-- **Key result:** `gate_40` decreased D7 retention by **0.82 pp** (19.02% to 18.20%), 95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**
-- **Tradeoff:** D1 retention is also lower (-0.59 pp, p = 0.0744), while engagement shows no robust upside
-- **Recommendation:** **Do not move the gate to level 40. Keep `gate_30` and iterate on alternative pacing designs.**
+This project analyzes a Cookie Cats A/B experiment testing whether moving the first game gate from level 30 to level 40 changes player retention and engagement.
+
+**Experiment**
+- Control: `gate_30`
+- Treatment: `gate_40`
+- Primary metric: Day-7 retention
+
+**Key Findings**
+- Day-7 retention decreased by **0.82 percentage points** (95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**)
+- Day-1 retention also decreased by **0.59 percentage points** (p = 0.0744)
+- Engagement metrics did not show a robust upside for `gate_40`
+
+**Recommendation**
+- **Do not move the gate to level 40**
+- Keep `gate_30` and test alternative pacing designs in follow-up experiments
 
 ## Business Context
 Cookie Cats uses level gates to shape progression pace. Moving the first gate later can increase short-term flow but may weaken long-term motivation loops. The product question is whether level-40 gating improves retention enough to justify rollout.
