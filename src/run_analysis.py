@@ -1,14 +1,16 @@
-"""
-Run Cookie Cats A/B test analysis: load data, run tests, write report and figures.
-Expects data/cookie_cats.csv; writes reports/report.md and figures/*.png.
-"""
-import os
-import sys
+"""Run Cookie Cats A/B analysis and generate reproducible artifacts."""
 
-import pandas as pd
-import numpy as np
-from scipy import stats
+import sys
 from pathlib import Path
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from scipy import stats
+
+matplotlib.use("Agg")
 
 # Paths relative to repo root (script may be run from repo root or from src/)
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +28,9 @@ def load_data():
         if col not in df.columns:
             print(f"Missing column: {col}")
             sys.exit(1)
+    if df["version"].nunique() != 2:
+        print("Expected exactly two variants in `version`.")
+        sys.exit(1)
     return df
 
 
@@ -44,14 +49,114 @@ def proportion_ztest_and_ci(n1, p1, n2, p2, alpha=0.05):
     return delta, p_value, (ci_low, ci_high)
 
 
+def proportion_ci_single_group(p_hat, n, alpha=0.05):
+    z_crit = stats.norm.ppf(1 - alpha / 2)
+    se = np.sqrt((p_hat * (1 - p_hat)) / n)
+    return p_hat - z_crit * se, p_hat + z_crit * se
+
+
+def srm_check(n_control, n_treatment, expected_ratio=0.5):
+    total = n_control + n_treatment
+    expected = np.array([total * expected_ratio, total * (1 - expected_ratio)])
+    observed = np.array([n_control, n_treatment])
+    chi2_stat = ((observed - expected) ** 2 / expected).sum()
+    p_value = 1 - stats.chi2.cdf(chi2_stat, df=1)
+    return chi2_stat, p_value
+
+
+def save_retention_figure(rates, cis):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    metrics = ["D1", "D7"]
+    control_vals = [rates["r1_ctrl"], rates["r7_ctrl"]]
+    treatment_vals = [rates["r1_trt"], rates["r7_trt"]]
+    control_err = [
+        rates["r1_ctrl"] - cis["r1_ctrl"][0],
+        rates["r7_ctrl"] - cis["r7_ctrl"][0],
+    ]
+    treatment_err = [
+        rates["r1_trt"] - cis["r1_trt"][0],
+        rates["r7_trt"] - cis["r7_trt"][0],
+    ]
+
+    x = np.arange(len(metrics))
+    width = 0.35
+    ax.bar(
+        x - width / 2,
+        control_vals,
+        width,
+        yerr=control_err,
+        capsize=4,
+        label="gate_30",
+        color="#1f77b4",
+    )
+    ax.bar(
+        x + width / 2,
+        treatment_vals,
+        width,
+        yerr=treatment_err,
+        capsize=4,
+        label="gate_40",
+        color="#ff7f0e",
+    )
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics)
+    ax.set_ylim(0, max(control_vals + treatment_vals) * 1.3)
+    ax.set_ylabel("Retention rate")
+    ax.set_title("Retention by variant with 95% CI")
+    ax.legend()
+    plt.tight_layout()
+    out = FIGURES_DIR / "retention_with_ci.png"
+    plt.savefig(out, dpi=120)
+    plt.close()
+    return out
+
+
+def save_gamerounds_figure(df):
+    q99 = df["sum_gamerounds"].quantile(0.99)
+    trimmed = df[df["sum_gamerounds"] <= q99].copy()
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.boxplot(
+        data=trimmed,
+        x="version",
+        y="sum_gamerounds",
+        order=["gate_30", "gate_40"],
+        ax=ax,
+    )
+    ax.set_title("Game rounds distribution (trimmed at p99)")
+    ax.set_xlabel("Variant")
+    ax.set_ylabel("sum_gamerounds")
+    plt.tight_layout()
+    out = FIGURES_DIR / "gamerounds_boxplot_trimmed.png"
+    plt.savefig(out, dpi=120)
+    plt.close()
+    return out
+
+
+def save_srm_figure(n_control, n_treatment):
+    total = n_control + n_treatment
+    expected = total / 2
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.bar(["gate_30", "gate_40"], [n_control, n_treatment], color=["#1f77b4", "#ff7f0e"])
+    ax.axhline(expected, color="black", linestyle="--", linewidth=1, label="Expected 50/50")
+    ax.set_title("Sample size check by variant")
+    ax.set_ylabel("Users")
+    ax.legend()
+    plt.tight_layout()
+    out = FIGURES_DIR / "sample_size_srm_check.png"
+    plt.savefig(out, dpi=120)
+    plt.close()
+    return out
+
+
 def main():
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    sns.set_theme(style="whitegrid")
 
     df = load_data()
     ctrl = df[df["version"] == "gate_30"]
     trt = df[df["version"] == "gate_40"]
-    n1, n2 = len(ctrl), len(trt)
+    n_ctrl, n_trt = len(ctrl), len(trt)
 
     # Retention rates
     r1_ctrl = ctrl["retention_1"].mean()
@@ -59,63 +164,72 @@ def main():
     r7_ctrl = ctrl["retention_7"].mean()
     r7_trt = trt["retention_7"].mean()
 
-    delta_1, p1, (ci1_low, ci1_high) = proportion_ztest_and_ci(
-        n1, r1_ctrl, n2, r1_trt
-    )
-    delta_7, p7, (ci7_low, ci7_high) = proportion_ztest_and_ci(
-        n1, r7_ctrl, n2, r7_trt
-    )
+    delta_1, p1, (ci1_low, ci1_high) = proportion_ztest_and_ci(n_ctrl, r1_ctrl, n_trt, r1_trt)
+    delta_7, p7, (ci7_low, ci7_high) = proportion_ztest_and_ci(n_ctrl, r7_ctrl, n_trt, r7_trt)
 
-    # Engagement: Mann-Whitney (two-sided)
+    # Engagement
     _, p_gamerounds = stats.mannwhitneyu(
         ctrl["sum_gamerounds"], trt["sum_gamerounds"], alternative="two-sided"
     )
     mean_diff_rounds = trt["sum_gamerounds"].mean() - ctrl["sum_gamerounds"].mean()
+    trim_ctrl = stats.trim_mean(ctrl["sum_gamerounds"], proportiontocut=0.01)
+    trim_trt = stats.trim_mean(trt["sum_gamerounds"], proportiontocut=0.01)
 
-    # Build report
+    # SRM
+    srm_chi2, srm_p = srm_check(n_ctrl, n_trt, expected_ratio=0.5)
+    srm_status = "PASS (no evidence of SRM)" if srm_p >= 0.05 else "FAIL (possible SRM)"
+
+    rates = {"r1_ctrl": r1_ctrl, "r1_trt": r1_trt, "r7_ctrl": r7_ctrl, "r7_trt": r7_trt}
+    cis = {
+        "r1_ctrl": proportion_ci_single_group(r1_ctrl, n_ctrl),
+        "r1_trt": proportion_ci_single_group(r1_trt, n_trt),
+        "r7_ctrl": proportion_ci_single_group(r7_ctrl, n_ctrl),
+        "r7_trt": proportion_ci_single_group(r7_trt, n_trt),
+    }
+
+    retention_fig = save_retention_figure(rates, cis)
+    gamerounds_fig = save_gamerounds_figure(df)
+    srm_fig = save_srm_figure(n_ctrl, n_trt)
+
+    recommendation = (
+        "Rollback / Do not ship gate_40."
+        if p7 < 0.05 and delta_7 < 0
+        else "No clear negative D7 impact; decision requires business review."
+    )
+
     report = f"""# Cookie Cats A/B Test Report (generated)
 
-## Primary: Day-7 retention
-- **Lift (gate_40 vs gate_30):** {delta_7 * 100:.2f} pp (control {r7_ctrl * 100:.2f}% vs treatment {r7_trt * 100:.2f}%)
-- **95% CI (difference):** [{ci7_low:.4f}, {ci7_high:.4f}]
+## Experiment and data quality checks
+- **Control (`gate_30`) sample size:** {n_ctrl:,}
+- **Treatment (`gate_40`) sample size:** {n_trt:,}
+- **SRM check (chi-square):** chi2 = {srm_chi2:.4f}, p = {srm_p:.4f} -> **{srm_status}**
+
+## Primary metric: Day-7 retention
+- **Lift (gate_40 - gate_30):** {delta_7 * 100:.2f} pp (control {r7_ctrl * 100:.2f}% vs treatment {r7_trt * 100:.2f}%)
+- **95% CI (difference):** [{ci7_low * 100:.2f} pp, {ci7_high * 100:.2f} pp]
 - **p-value (two-sided proportion z-test):** {p7:.4f}
 
-## Secondary: Day-1 retention
-- **Lift:** {delta_1 * 100:.2f} pp; **p-value:** {p1:.4f}; **95% CI:** [{ci1_low:.4f}, {ci1_high:.4f}]
-
-## Engagement (sum_gamerounds)
-- **Mean difference (treatment - control):** {mean_diff_rounds:.2f}
-- **p-value (Mann-Whitney U, two-sided):** {p_gamerounds:.4f}
+## Secondary metrics
+- **Day-1 retention lift:** {delta_1 * 100:.2f} pp; **95% CI:** [{ci1_low * 100:.2f} pp, {ci1_high * 100:.2f} pp]; **p-value:** {p1:.4f}
+- **sum_gamerounds mean difference (treatment - control):** {mean_diff_rounds:.2f}
+- **Mann-Whitney U p-value:** {p_gamerounds:.4f}
+- **1% trimmed mean (control vs treatment):** {trim_ctrl:.2f} vs {trim_trt:.2f}
 
 ## Recommendation
-{"Rollback / Do not ship gate_40." if p7 < 0.05 and delta_7 < 0 else "See README for full recommendation."}
+{recommendation}
+
+## Artifacts
+- `figures/{retention_fig.name}`
+- `figures/{gamerounds_fig.name}`
+- `figures/{srm_fig.name}`
 """
 
-    report_path = REPO_ROOT / "reports" / "report.md"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path = REPORTS_DIR / "report.md"
     report_path.write_text(report, encoding="utf-8")
     print(f"Wrote {report_path}")
-
-    # Simple figure: retention comparison
-    try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
-        for ax_i, (name, vals) in enumerate([
-            ("Day-1 retention", (r1_ctrl, r1_trt)),
-            ("Day-7 retention", (r7_ctrl, r7_trt)),
-        ]):
-            ax[ax_i].bar(["gate_30", "gate_40"], vals, color=["#1f77b4", "#ff7f0e"])
-            ax[ax_i].set_ylabel("Rate")
-            ax[ax_i].set_title(name)
-        plt.tight_layout()
-        plt.savefig(FIGURES_DIR / "retention_comparison.png", dpi=100)
-        plt.close()
-        print(f"Wrote {FIGURES_DIR / 'retention_comparison.png'}")
-    except Exception as e:
-        print(f"Could not save figure: {e}")
-
+    print(f"Wrote {retention_fig}")
+    print(f"Wrote {gamerounds_fig}")
+    print(f"Wrote {srm_fig}")
     print("Done.")
 
 
