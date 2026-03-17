@@ -63,6 +63,14 @@ Cookie Cats uses level gates to shape progression pace. Moving the first gate la
 - **Product thinking:** if a future variant improves engagement but hurts retention, prioritize long-term retention unless engagement gain maps to proven monetization or LTV lift
 - **Execution note:** resolve SRM cause before relaunching any follow-up experiment
 
+## Product Interpretation
+- **If retention decreases but engagement increases:** treat this as a tradeoff review, not an automatic win; verify whether engagement lift translates into durable value (LTV, revenue quality, or longer-term retention).
+- **PM decision rule:** prioritize long-term retention when engagement gains are short-lived, noisy, or concentrated in heavy users.
+- **Ship / iterate / rollback framework:**
+  - **Ship:** primary metric improves and guardrails are not harmed.
+  - **Iterate:** mixed signals with plausible upside; run follow-up test with clearer targeting and stronger instrumentation.
+  - **Rollback:** primary metric declines materially with no robust business compensation.
+
 ## Limitations
 - Dataset is limited to D0-D7; no long-run retention, revenue, or LTV
 - No segmentation by cohort, platform, geo, or acquisition channel
