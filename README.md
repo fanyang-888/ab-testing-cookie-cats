@@ -5,13 +5,19 @@ A/B testing analysis of the Cookie Cats gate placement experiment, focused on re
 ## Executive Summary
 - **Problem:** Should the first gate move from level 30 (`gate_30`) to level 40 (`gate_40`)?
 - **Experiment setup:** User-level randomized A/B test, 90,189 users total.
-- **Sample sizes:** `gate_30` = 44,700; `gate_40` = 45,489. No meaningful SRM signal for a 50/50 split.
+- **Sample sizes:** `gate_30` = 44,700; `gate_40` = 45,489. SRM check: chi2 = 6.90, p = 0.0086 (possible allocation mismatch; interpret with care).
 - **Primary metric (D7 retention):** `gate_40` decreased D7 retention by **0.82 pp** (19.02% to 18.20%), 95% CI **[-1.33 pp, -0.31 pp]**, p = **0.0016**.
 - **Secondary metrics:** D1 retention decreased by **0.59 pp** (p = 0.0744; not significant). `sum_gamerounds` showed no robust improvement for `gate_40` (Mann-Whitney p = 0.0502; tiny mean delta).
 - **Recommendation:** **Do not ship `gate_40`. Keep `gate_30` and test alternative pacing ideas.**
 
 ## Key Result and Conclusion
 The treatment harms the primary metric (D7 retention) with statistical and practical significance, while not delivering clear upside on D1 retention or engagement. This is a negative tradeoff and should be rejected in production.
+
+## Final Artifacts
+- **Report:** `reports/report.md`
+- **Retention with CI chart:** `figures/retention_with_ci.png`
+- **Engagement distribution chart:** `figures/gamerounds_boxplot_trimmed.png`
+- **Sample-size/SRM chart:** `figures/sample_size_srm_check.png`
 
 ## Quick Reproducibility
 1. Install dependencies: `pip install -r requirements.txt`
@@ -55,7 +61,9 @@ The treatment harms the primary metric (D7 retention) with statistical and pract
 ## Business Recommendation
 - **Decision:** Roll back `gate_40` and keep `gate_30`.
 - **Why not p-value only:** decision is based on direction, size, uncertainty, and product impact, not significance alone.
-- **Next experiment:** test pacing variants that preserve D7 while monitoring D1 and engagement guardrails.
+- **Practical significance:** a -0.82 pp D7 shift is meaningful at scale and points in the wrong direction.
+- **Tradeoff view:** D7 decreases significantly, while D1 and engagement show no compensating upside.
+- **Next experiment:** test alternative pacing designs and tighten traffic assignment instrumentation to remove SRM risk before relaunch.
 
 ## Limitations
 - D0-D7 window only; no long-run retention or revenue outcomes.
