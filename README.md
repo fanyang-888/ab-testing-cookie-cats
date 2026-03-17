@@ -75,10 +75,21 @@ Cookie Cats uses level gates to shape progression pace. Moving the first gate la
 - Add guardrails for monetization and frustration signals
 - Pre-register SRM monitoring and assignment instrumentation checks
 
-## Visual Artifacts
-- `figures/retention_plot.png`
-- `figures/gamerounds_distribution.png`
-- `figures/bootstrap_difference.png`
-- `figures/srm_check.png`
+## Key Visuals
+### Retention Comparison (with CI)
+![Retention comparison](figures/retention_plot.png)
+Treatment underperforms on both D1 and D7 retention, with the clearest negative signal on D7.
+
+### Gamerounds Distribution (Heavy-Tail)
+![Gamerounds distribution](figures/gamerounds_distribution.png)
+The engagement distribution is heavy-tailed; robust tests and trimmed means are required to avoid being driven by extreme users.
+
+### Bootstrap Difference Distribution
+![Bootstrap effect distribution](figures/bootstrap_difference.png)
+The bootstrap distribution for gamerounds difference spans zero, supporting the conclusion that engagement upside is not robust.
+
+### SRM Check
+![SRM check](figures/srm_check.png)
+Group sizes deviate from perfect 50/50 allocation, so conclusions should be interpreted with experiment-validity caution.
 
 
